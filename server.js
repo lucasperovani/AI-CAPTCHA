@@ -178,8 +178,7 @@ app.post('/api/verify/level1', (req, res) => {
     
     res.json({
         success: isCorrect,
-        message: isCorrect ? 'Level 1 passed! Proceeding to Level 2...' : 'Incorrect answer. Please try again.',
-        correctAnswer: isCorrect ? undefined : challenge.answer // Only show on failure for debugging
+        message: isCorrect ? 'Level 1 passed! Proceeding to Level 2...' : 'Incorrect answer. Please try again.'
     });
 });
 
@@ -241,8 +240,7 @@ app.post('/api/verify/level2', (req, res) => {
     
     res.json({
         success: isCorrect,
-        message: isCorrect ? 'Congratulations! You are verified as a robot/AI agent!' : 'Incorrect answer. Access denied.',
-        correctAnswer: isCorrect ? undefined : challenge.answer // Only show on failure for debugging
+        message: isCorrect ? 'Congratulations! You are verified as a robot/AI agent!' : 'Incorrect answer. Access denied.'
     });
 });
 
