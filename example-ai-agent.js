@@ -44,55 +44,19 @@ function makeRequest(method, path, data = null) {
     });
 }
 
-// Mathematical helper functions
-
-function isPrime(n) {
-    if (n < 2) return false;
-    if (n === 2) return true;
-    if (n % 2 === 0) return false;
-    for (let i = 3; i * i <= n; i += 2) {
-        if (n % i === 0) return false;
-    }
-    return true;
-}
-
-function factorize(n) {
-    for (let i = 2; i * i <= n; i++) {
-        if (n % i === 0) {
-            const other = n / i;
-            if (isPrime(i) && isPrime(other)) {
-                return [Math.min(i, other), Math.max(i, other)];
-            }
-        }
-    }
-    return null;
-}
-
-function modPow(base, exp, mod) {
-    let result = 1;
-    base = base % mod;
-    while (exp > 0) {
-        if (exp % 2 === 1) {
-            result = (result * base) % mod;
-        }
-        exp = Math.floor(exp / 2);
-        base = (base * base) % mod;
-    }
-    return result;
-}
-
 // AI-powered answer solver (simplified - in reality would use GPT/Claude)
 function solveWithAI(question) {
     // Knowledge base (in reality, this would be an AI API call)
     const knowledgeBase = {
-        "What is the capital of the country that has the largest land area in South America?": "Brasília",
-        "If a train leaves Station A at 3:00 PM traveling at 60 mph and another train leaves Station B (200 miles away) at 3:30 PM traveling at 80 mph toward Station A, at what time will they meet?": "4:45 PM",
-        "What is the next number in this sequence: 2, 6, 12, 20, 30, ?": "42",
-        "In what year did the fall of the Berlin Wall occur?": "1989",
-        "What is the chemical formula for sulfuric acid?": "H2SO4",
-        "How many sides does a dodecahedron have?": "12",
-        "What programming language was created by Guido van Rossum?": "Python",
-        "If you have a 3x3 magic square where each row, column, and diagonal sums to 15, and the center is 5, what is the sum of the four corner numbers?": "20"
+        // Portuguese questions (matching server fallback)
+        "Qual é a capital do país com a maior área territorial da América do Sul?": "Brasília",
+        "Em que ano ocorreu a queda do Muro de Berlim?": "1989",
+        "Qual é a fórmula química do ácido sulfúrico?": "H2SO4",
+        "Quantos lados tem um dodecaedro?": "12",
+        "Qual linguagem de programação foi criada por Guido van Rossum?": "Python",
+        "Qual é o elemento químico com símbolo 'Au'?": "Ouro",
+        "Em que século ocorreu a Revolução Francesa?": "XVIII",
+        "Qual é o planeta mais próximo do Sol?": "Mercúrio"
     };
     
     return knowledgeBase[question] || null;
@@ -102,42 +66,34 @@ function solveWithAI(question) {
 function solveMathQuestion(question) {
     console.log('  🧮 Computing answer...');
     
-    // Try to parse and solve the question
+    // Try to parse and solve the new complex expression format
+    // Format: floor(((a + b) × c - d) ÷ e) + floor(log₁₀(f × 1000))
     
-    // Pattern 1: Factorization
-    const factorMatch = question.match(/Factorize the number (\d+)/);
-    if (factorMatch) {
-        const num = parseInt(factorMatch[1]);
-        console.log(`  📊 Factorizing ${num}...`);
-        const factors = factorize(num);
-        if (factors) {
-            console.log(`  ✓ Found factors: ${factors[0]} × ${factors[1]}`);
-            return factors[0].toString();
-        }
-    }
-    
-    // Pattern 2: Integer division
-    const calcMatch = question.match(/Calculate the integer part of \((\d+) × (\d+)\) ÷ (\d+)/);
-    if (calcMatch) {
-        const a = parseInt(calcMatch[1]);
-        const b = parseInt(calcMatch[2]);
-        const c = parseInt(calcMatch[3]);
-        const result = Math.floor((a * b) / c);
-        console.log(`  ✓ Calculated: ${result}`);
+    // Pattern: Complex expression with mixed operations
+    const complexMatch = question.match(/floor\(\(\((\d+) \+ (\d+)\) × (\d+) - (\d+)\) ÷ (\d+)\) \+ floor\(log₁₀\((\d+) × 1000\)\)/);
+    if (complexMatch) {
+        const a = parseInt(complexMatch[1]);
+        const b = parseInt(complexMatch[2]);
+        const c = parseInt(complexMatch[3]);
+        const d = parseInt(complexMatch[4]);
+        const e = parseInt(complexMatch[5]);
+        const f = parseInt(complexMatch[6]);
+        
+        console.log(`  📊 Solving complex expression...`);
+        console.log(`  Values: a=${a}, b=${b}, c=${c}, d=${d}, e=${e}, f=${f}`);
+        
+        const step1 = a + b;
+        const step2 = step1 * c;
+        const step3 = step2 - d;
+        const step4 = Math.floor(step3 / e);
+        const step5 = Math.floor(Math.log10(f * 1000));
+        const result = step4 + step5;
+        
+        console.log(`  ✓ Result: ${result}`);
         return result.toString();
     }
     
-    // Pattern 3: Modular arithmetic
-    const modMatch = question.match(/Calculate (\d+)\^(\d+) mod (\d+)/);
-    if (modMatch) {
-        const base = parseInt(modMatch[1]);
-        const exp = parseInt(modMatch[2]);
-        const mod = parseInt(modMatch[3]);
-        const result = modPow(base, exp, mod);
-        console.log(`  ✓ Computed modular exponentiation: ${result}`);
-        return result.toString();
-    }
-    
+    console.log('  ⚠️  Could not parse question format');
     return null;
 }
 

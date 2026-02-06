@@ -1,9 +1,18 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+const https = require('https');
+const http = require('http');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Configuration from environment variables
+const LEVEL1_TIME_LIMIT = parseInt(process.env.LEVEL1_TIME_LIMIT_MS || '5000', 10); // 5 seconds default
+const LEVEL2_TIME_LIMIT = parseInt(process.env.LEVEL2_TIME_LIMIT_MS || '30000', 10); // 30 seconds default
+const AI_API_KEY = process.env.AI_API_KEY || '';
+const AI_API_HOST = process.env.AI_API_HOST || 'api.openai.com';
+const AI_API_MODEL = process.env.AI_API_MODEL || 'gpt-3.5-turbo';
 
 // Middleware
 app.use(express.json());
@@ -12,111 +21,189 @@ app.use(express.static('public'));
 // In-memory storage for challenges (in production, use Redis or similar)
 const challenges = new Map();
 
-// Helper function to generate large prime numbers for factorization
-function generateLargePrime() {
-    // Generate a large-ish prime number (for demo purposes)
-    const primes = [104729, 104743, 104759, 104761, 104773, 104779, 104789, 104801, 
-                    104803, 104827, 104831, 104849, 104851, 104869, 104879, 104891];
-    return primes[Math.floor(Math.random() * primes.length)];
-}
-
 // Helper function to generate complex mathematical problems
+// Uses a mix of operations: addition, subtraction, multiplication, division, exponentiation, logarithm
 function generateMathChallenge() {
-    const challengeTypes = [
-        // Type 1: Large prime factorization
-        () => {
-            const prime1 = generateLargePrime();
-            const prime2 = generateLargePrime();
-            const product = prime1 * prime2;
-            return {
-                question: `Factorize the number ${product} into two prime factors and return the smaller prime.`,
-                answer: Math.min(prime1, prime2).toString(),
-                type: 'factorization'
-            };
-        },
-        // Type 2: Complex calculation
-        () => {
-            const a = Math.floor(Math.random() * 1000) + 500;
-            const b = Math.floor(Math.random() * 1000) + 500;
-            const c = Math.floor(Math.random() * 100) + 50;
-            const result = Math.floor((a * b) / c);
-            return {
-                question: `Calculate the integer part of (${a} × ${b}) ÷ ${c}`,
-                answer: result.toString(),
-                type: 'calculation'
-            };
-        },
-        // Type 3: Modular arithmetic
-        () => {
-            const base = Math.floor(Math.random() * 1000) + 1000;
-            const exp = Math.floor(Math.random() * 10) + 10;
-            const mod = Math.floor(Math.random() * 100) + 100;
-            const result = modPow(base, exp, mod);
-            return {
-                question: `Calculate ${base}^${exp} mod ${mod}`,
-                answer: result.toString(),
-                type: 'modular'
-            };
-        }
-    ];
+    // Generate numbers that are large but won't cause overflow
+    // JavaScript can safely handle integers up to 2^53 - 1
+    const a = Math.floor(Math.random() * 9000) + 1000; // 1000-9999
+    const b = Math.floor(Math.random() * 900) + 100;   // 100-999
+    const c = Math.floor(Math.random() * 90) + 10;     // 10-99
+    const d = Math.floor(Math.random() * 900) + 100;   // 100-999
+    const e = Math.floor(Math.random() * 9) + 2;       // 2-10 (for exponents)
+    const f = Math.floor(Math.random() * 90) + 10;     // 10-99
     
-    const selectedType = challengeTypes[Math.floor(Math.random() * challengeTypes.length)];
-    return selectedType();
+    // Create complex expression with mixed operations
+    // Example: ((a + b) * c - d) / e + floor(log10(f * 1000))
+    const step1 = a + b;                               // Addition
+    const step2 = step1 * c;                           // Multiplication
+    const step3 = step2 - d;                           // Subtraction
+    const step4 = Math.floor(step3 / e);               // Division
+    const step5 = Math.floor(Math.log10(f * 1000));    // Logarithm
+    const result = step4 + step5;                       // Final addition
+    
+    const question = `Calculate: floor(((${a} + ${b}) × ${c} - ${d}) ÷ ${e}) + floor(log₁₀(${f} × 1000))`;
+    
+    return {
+        question: question,
+        answer: result.toString(),
+        type: 'complex-expression'
+    };
 }
 
-// Modular exponentiation helper
-function modPow(base, exp, mod) {
-    let result = 1;
-    base = base % mod;
-    while (exp > 0) {
-        if (exp % 2 === 1) {
-            result = (result * base) % mod;
-        }
-        exp = Math.floor(exp / 2);
-        base = (base * base) % mod;
+// Topics for AI-generated questions
+const AI_TOPICS = [
+    'geografia mundial',
+    'história',
+    'ciência',
+    'matemática',
+    'literatura',
+    'tecnologia',
+    'astronomia',
+    'biologia',
+    'química',
+    'física'
+];
+
+// Helper function to call AI API for question generation
+async function callAIAPI(topic) {
+    if (!AI_API_KEY) {
+        console.warn('AI_API_KEY not configured, using fallback questions');
+        return null;
     }
-    return result;
+    
+    const prompt = `Monte uma pergunta elaborada e complexa sobre o tema "${topic}" em que a resposta seja apenas uma palavra. Monte no formato: "Q: {PERGUNTA AQUI};;; A:{RESPOSTA AQUI}"`;
+    
+    return new Promise((resolve, reject) => {
+        const postData = JSON.stringify({
+            model: AI_API_MODEL,
+            messages: [
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 200
+        });
+        
+        const options = {
+            hostname: AI_API_HOST,
+            path: '/v1/chat/completions',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${AI_API_KEY}`,
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+        
+        const protocol = AI_API_HOST.includes('localhost') ? http : https;
+        const req = protocol.request(options, (res) => {
+            let data = '';
+            
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            
+            res.on('end', () => {
+                try {
+                    const response = JSON.parse(data);
+                    if (response.choices && response.choices[0] && response.choices[0].message) {
+                        const content = response.choices[0].message.content.trim();
+                        resolve(content);
+                    } else {
+                        reject(new Error('Invalid API response format'));
+                    }
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        });
+        
+        req.on('error', (error) => {
+            reject(error);
+        });
+        
+        req.setTimeout(10000, () => {
+            req.destroy();
+            reject(new Error('API request timeout'));
+        });
+        
+        req.write(postData);
+        req.end();
+    });
 }
 
 // Helper function to generate AI-style challenges
-// In a real implementation, this would call an AI API like OpenAI
-function generateAIChallenge() {
-    const challenges = [
+async function generateAIChallenge() {
+    // Select random topic
+    const topic = AI_TOPICS[Math.floor(Math.random() * AI_TOPICS.length)];
+    
+    try {
+        if (AI_API_KEY) {
+            const aiResponse = await callAIAPI(topic);
+            
+            if (aiResponse) {
+                // Parse the response format: "Q: {question};;; A:{answer}"
+                const parts = aiResponse.split(';;;');
+                
+                if (parts.length === 2) {
+                    const questionPart = parts[0].trim();
+                    const answerPart = parts[1].trim();
+                    
+                    // Extract question (remove "Q:" prefix)
+                    const question = questionPart.replace(/^Q:\s*/i, '').trim();
+                    // Extract answer (remove "A:" prefix)
+                    const answer = answerPart.replace(/^A:\s*/i, '').trim();
+                    
+                    if (question && answer) {
+                        return { question, answer };
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error calling AI API:', error.message);
+    }
+    
+    // Fallback to pre-configured questions if AI API fails or is not configured
+    const fallbackChallenges = [
         {
-            question: "What is the capital of the country that has the largest land area in South America?",
+            question: "Qual é a capital do país com a maior área territorial da América do Sul?",
             answer: "Brasília"
         },
         {
-            question: "If a train leaves Station A at 3:00 PM traveling at 60 mph and another train leaves Station B (200 miles away) at 3:30 PM traveling at 80 mph toward Station A, at what time will they meet?",
-            answer: "4:45 PM"
-        },
-        {
-            question: "What is the next number in this sequence: 2, 6, 12, 20, 30, ?",
-            answer: "42"
-        },
-        {
-            question: "In what year did the fall of the Berlin Wall occur?",
+            question: "Em que ano ocorreu a queda do Muro de Berlim?",
             answer: "1989"
         },
         {
-            question: "What is the chemical formula for sulfuric acid?",
+            question: "Qual é a fórmula química do ácido sulfúrico?",
             answer: "H2SO4"
         },
         {
-            question: "How many sides does a dodecahedron have?",
+            question: "Quantos lados tem um dodecaedro?",
             answer: "12"
         },
         {
-            question: "What programming language was created by Guido van Rossum?",
+            question: "Qual linguagem de programação foi criada por Guido van Rossum?",
             answer: "Python"
         },
         {
-            question: "If you have a 3x3 magic square where each row, column, and diagonal sums to 15, and the center is 5, what is the sum of the four corner numbers?",
-            answer: "20"
+            question: "Qual é o elemento químico com símbolo 'Au'?",
+            answer: "Ouro"
+        },
+        {
+            question: "Em que século ocorreu a Revolução Francesa?",
+            answer: "XVIII"
+        },
+        {
+            question: "Qual é o planeta mais próximo do Sol?",
+            answer: "Mercúrio"
         }
     ];
     
-    return challenges[Math.floor(Math.random() * challenges.length)];
+    return fallbackChallenges[Math.floor(Math.random() * fallbackChallenges.length)];
 }
 
 // API Routes
@@ -126,13 +213,14 @@ app.post('/api/challenge/level1', (req, res) => {
     const sessionId = uuidv4();
     const challenge = generateMathChallenge();
     
-    // Store challenge with answer
+    // Store challenge with answer and creation timestamp
     challenges.set(sessionId, {
         level: 1,
         question: challenge.question,
         answer: challenge.answer,
         type: challenge.type,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        createdAt: Date.now() // Track when challenge was created
     });
     
     // Return only the question
@@ -170,6 +258,16 @@ app.post('/api/verify/level1', (req, res) => {
         });
     }
     
+    // Check time limit
+    const elapsedTime = Date.now() - challenge.createdAt;
+    if (elapsedTime > LEVEL1_TIME_LIMIT) {
+        challenges.delete(sessionId);
+        return res.status(400).json({
+            success: false,
+            message: `Time limit exceeded. You took ${Math.floor(elapsedTime / 1000)}s but the limit is ${Math.floor(LEVEL1_TIME_LIMIT / 1000)}s. Only machines can solve this fast enough!`
+        });
+    }
+    
     // Clean up challenge
     challenges.delete(sessionId);
     
@@ -178,29 +276,40 @@ app.post('/api/verify/level1', (req, res) => {
     
     res.json({
         success: isCorrect,
-        message: isCorrect ? 'Level 1 passed! Proceeding to Level 2...' : 'Incorrect answer. Please try again.'
+        message: isCorrect ? 'Level 1 passed! Proceeding to Level 2...' : 'Incorrect answer. Please try again.',
+        elapsedTime: Math.floor(elapsedTime / 1000) // Return time in seconds for debugging
     });
 });
 
 // Level 2: Generate AI challenge
-app.post('/api/challenge/level2', (req, res) => {
+app.post('/api/challenge/level2', async (req, res) => {
     const sessionId = uuidv4();
-    const challenge = generateAIChallenge();
     
-    // Store challenge with answer
-    challenges.set(sessionId, {
-        level: 2,
-        question: challenge.question,
-        answer: challenge.answer,
-        timestamp: Date.now()
-    });
-    
-    // Return only the question
-    res.json({
-        sessionId,
-        question: challenge.question,
-        level: 2
-    });
+    try {
+        const challenge = await generateAIChallenge();
+        
+        // Store challenge with answer and creation timestamp
+        challenges.set(sessionId, {
+            level: 2,
+            question: challenge.question,
+            answer: challenge.answer,
+            timestamp: Date.now(),
+            createdAt: Date.now()
+        });
+        
+        // Return only the question
+        res.json({
+            sessionId,
+            question: challenge.question,
+            level: 2
+        });
+    } catch (error) {
+        console.error('Error generating Level 2 challenge:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to generate challenge'
+        });
+    }
 });
 
 // Level 2: Verify answer
@@ -230,6 +339,16 @@ app.post('/api/verify/level2', (req, res) => {
         });
     }
     
+    // Check time limit
+    const elapsedTime = Date.now() - challenge.createdAt;
+    if (elapsedTime > LEVEL2_TIME_LIMIT) {
+        challenges.delete(sessionId);
+        return res.status(400).json({
+            success: false,
+            message: `Time limit exceeded. You took ${Math.floor(elapsedTime / 1000)}s but the limit is ${Math.floor(LEVEL2_TIME_LIMIT / 1000)}s. Only AI agents can answer this fast enough!`
+        });
+    }
+    
     // Clean up challenge
     challenges.delete(sessionId);
     
@@ -240,7 +359,8 @@ app.post('/api/verify/level2', (req, res) => {
     
     res.json({
         success: isCorrect,
-        message: isCorrect ? 'Congratulations! You are verified as a robot/AI agent!' : 'Incorrect answer. Access denied.'
+        message: isCorrect ? 'Congratulations! You are verified as a robot/AI agent!' : 'Incorrect answer. Access denied.',
+        elapsedTime: Math.floor(elapsedTime / 1000)
     });
 });
 
