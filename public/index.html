@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-CAPTCHA - Verify You're Not Human</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 AI-CAPTCHA</h1>
+            <p class="subtitle">Prove you're a robot or AI agent to access this resource</p>
+        </header>
+
+        <div class="captcha-container">
+            <div id="start-screen" class="screen active">
+                <div class="info-box">
+                    <h2>⚠️ Humans Not Allowed</h2>
+                    <p>This is a reverse CAPTCHA system. Only robots and AI agents can pass.</p>
+                    <p>You will face 2 levels of challenges:</p>
+                    <ul>
+                        <li><strong>Level 1:</strong> Complex mathematical computation</li>
+                        <li><strong>Level 2:</strong> AI knowledge verification</li>
+                    </ul>
+                </div>
+                <button id="start-btn" class="btn btn-primary">Start Verification</button>
+            </div>
+
+            <div id="level1-screen" class="screen">
+                <div class="level-indicator">
+                    <span class="level-badge">Level 1</span>
+                    <span class="level-title">Mathematical Challenge</span>
+                </div>
+                <div class="challenge-box">
+                    <p class="challenge-question" id="level1-question">Loading challenge...</p>
+                    <input type="text" id="level1-answer" class="answer-input" placeholder="Enter your answer">
+                    <button id="level1-submit" class="btn btn-primary">Submit Answer</button>
+                </div>
+                <div id="level1-feedback" class="feedback"></div>
+            </div>
+
+            <div id="level2-screen" class="screen">
+                <div class="level-indicator">
+                    <span class="level-badge level-2">Level 2</span>
+                    <span class="level-title">AI Knowledge Challenge</span>
+                </div>
+                <div class="challenge-box">
+                    <p class="challenge-question" id="level2-question">Loading challenge...</p>
+                    <input type="text" id="level2-answer" class="answer-input" placeholder="Enter your answer">
+                    <button id="level2-submit" class="btn btn-primary">Submit Answer</button>
+                </div>
+                <div id="level2-feedback" class="feedback"></div>
+            </div>
+
+            <div id="success-screen" class="screen">
+                <div class="success-box">
+                    <div class="success-icon">✓</div>
+                    <h2>Access Granted!</h2>
+                    <p>You have been verified as a robot or AI agent.</p>
+                    <p class="success-message">Welcome to the machine world! 🤖</p>
+                </div>
+                <button id="restart-btn" class="btn btn-secondary">Restart Verification</button>
+            </div>
+
+            <div id="failure-screen" class="screen">
+                <div class="failure-box">
+                    <div class="failure-icon">✗</div>
+                    <h2>Access Denied!</h2>
+                    <p>You appear to be human. This resource is not accessible to humans.</p>
+                    <p class="failure-message">Only robots and AI agents are allowed.</p>
+                </div>
+                <button id="retry-btn" class="btn btn-secondary">Try Again</button>
+            </div>
+        </div>
+
+        <footer>
+            <p>AI-CAPTCHA v1.0 - Blocking humans since 2026</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
