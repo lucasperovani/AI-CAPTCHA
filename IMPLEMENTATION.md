@@ -20,17 +20,12 @@ This project implements a reverse CAPTCHA system designed to allow only robots a
 ### Level 1: Mathematical Challenges
 Three types of challenges are randomly generated:
 
-1. **Prime Factorization**
-   - Example: "Factorize the number 10988280049 into two prime factors and return the smaller prime."
-   - Requires computational factorization algorithms
-   - Difficult for humans without programming tools
-
-2. **Complex Calculations**
+1. **Complex Calculations**
    - Example: "Calculate the integer part of (1234 × 5678) ÷ 91"
    - Large number arithmetic
    - Easy for computers, tedious for humans
 
-3. **Modular Arithmetic**
+2. **Modular Arithmetic**
    - Example: "Calculate 1885^12 mod 147"
    - Requires modular exponentiation algorithm
    - Impossible for humans to compute quickly
@@ -194,4 +189,4 @@ curl -X POST http://localhost:3000/api/verify/level1 \
 - [ ] Captcha widget for embedding in other sites
 
 ## License
-MIT - See LICENSE file for details
+GPL-3.0 - See LICENSE file for details

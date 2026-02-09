@@ -9,7 +9,7 @@
   },
   "keywords": ["captcha", "ai", "anti-human", "reverse-captcha"],
   "author": "",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "dependencies": {
     "express": "^4.18.2",
     "uuid": "^9.0.0"
