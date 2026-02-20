@@ -1,0 +1,17 @@
+{
+  "name": "ai-captcha",
+  "version": "1.0.0",
+  "description": "Block humans from accessing your resources! A reverse CAPTCHA for AI agents.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["captcha", "ai", "anti-human", "reverse-captcha"],
+  "author": "",
+  "license": "GPL-3.0-only",
+  "dependencies": {
+    "express": "^4.18.2",
+    "uuid": "^9.0.0"
+  }
+}
